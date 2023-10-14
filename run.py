@@ -18,7 +18,7 @@ def run(
         webapp_url: str,
         test_time: int = 60,
         proxy: str | None = None,
-        shutup_before_verification: bool = True
+        shutup: bool = True
 ):
     dp = Dispatcher()
 
@@ -37,7 +37,7 @@ def run(
         me.username,
         webapp_url,
         recaptcha_token,
-        shutup_before_verification,
+        shutup,
         test_time,
         proxy)
     dp.include_router(router)
@@ -56,11 +56,4 @@ if __name__ == '__main__':
     parser.add_argument('--proxy', type=str, help='proxy server', default=None)
     args = parser.parse_args()
 
-    run(
-        telegram_token=args.telegram_token,
-        recaptcha_token=args.recaptcha_token,
-        webapp_url=args.webapp_url,
-        test_time=args.test_time,
-        proxy=args.proxy,
-        shutup_before_verification=args.shutup
-    )
+    run(**vars(args))
