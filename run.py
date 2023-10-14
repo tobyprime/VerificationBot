@@ -30,18 +30,20 @@ def run(
 
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
-    async def main():
-        router = get_handlers_router(
-            (await bot.get_me()).username,
-            webapp_url,
-            recaptcha_token,
-            shutup_before_verification,
-            test_time,
-            proxy)
-        dp.include_router(router)
-        await dp.start_polling(bot)
+    loop = asyncio.get_event_loop()
+    me = loop.run_until_complete(bot.get_me())
 
-    asyncio.run(main())
+    router = get_handlers_router(
+        me.username,
+        webapp_url,
+        recaptcha_token,
+        shutup_before_verification,
+        test_time,
+        proxy)
+    dp.include_router(router)
+
+    loop.run_until_complete(dp.start_polling(bot))
+    loop.close()
 
 
 if __name__ == '__main__':
