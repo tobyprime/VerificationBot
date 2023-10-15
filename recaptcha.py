@@ -19,9 +19,9 @@ async def verification(chat: Chat,
                        test_time: int):
     """
      缓存数据，发送提示信息，等待私聊验证，超市则踢出用户
-     :param chat_id: 群组 id
+     :param chat: 群组
      :param message_id: 提示信息 id，验证后删除
-     :param user_id: 被验证用户 id
+     :param user: 被验证用户
      :param bot: Bot
      :param shutup_before_verification: 在通过验证前是否禁言
      :param test_time: 超过这个时间将被封禁
