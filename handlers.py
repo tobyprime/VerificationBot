@@ -25,7 +25,8 @@ def reg_command_start_handler(router: Router, webapp_url: str):
         webapp = WebAppInfo(url=webapp_url)
         keyboard = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text="点我验证", web_app=webapp)]],
-            resize_keyboard=True
+            resize_keyboard=True,
+            one_time_keyboard=True
         )
         await message.answer("请点击下方按钮进行验证", reply_markup=keyboard)
 
