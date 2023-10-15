@@ -7,7 +7,7 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppIn
 from aiogram.utils.markdown import hbold
 
 from filters import IsAdmin, IsWebAppData
-from recaptcha import verify_recaptcha, deferred_verification, users_state, STATE_PASS
+from recaptcha import verify_recaptcha, verification, users_state, STATE_PASS
 
 
 def reg_command_start_handler(router: Router, webapp_url: str):
@@ -76,10 +76,10 @@ def reg_new_member_handler(router: Router, test_time: int, bot_name: str, reset_
             reply_markup=markup
         )
 
-        await deferred_verification(
-            chat_id=msg.chat.id,
+        await verification(
+            chat=msg.chat,
             message_id=msg.message_id,
-            user_id=event.new_chat_member.user.id,
+            user=event.new_chat_member.user,
             bot=event.bot,
             shutup_before_verification=reset_permissions,
             test_time=test_time
