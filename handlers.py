@@ -7,7 +7,7 @@ from aiogram.utils.markdown import hbold
 from recaptcha import verify_recaptcha, deferred_verification, users_state, STATE_PASS
 
 
-def reg_command_start_handler(router, webapp_url):
+def reg_command_start_handler(router: Router, webapp_url: str):
     @router.message(CommandStart())
     async def handler(message: Message, command: CommandObject):
         """
@@ -20,19 +20,22 @@ def reg_command_start_handler(router, webapp_url):
             await message.answer(f"你没有待通过的入群验证")
             return
         webapp = WebAppInfo(url=webapp_url)
-        keyboard = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="Verify", web_app=webapp)]])
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text="点我验证", web_app=webapp)]],
+            resize_keyboard=True
+        )
         await message.answer("请点击下方按钮进行验证", reply_markup=keyboard)
 
 
-def reg_callback_handler(router, reset_permissions: bool, token: str, proxy=None):
+def reg_callback_handler(router: Router, reset_permissions: bool, token: str, proxy=None):
     @router.message()
     async def handler(message: Message):
         """
            处理用户在 WebApp 完成验证后的 reCaptcha Response
            """
-        user_id = message.from_user.id
-        if message.web_app_data is None:
+        if not message.web_app_data:
             return
+        user_id = message.from_user.id
         if user_id not in users_state:
             return
         if not verify_recaptcha(message.web_app_data.data, token, proxy):
@@ -49,19 +52,25 @@ def reg_callback_handler(router, reset_permissions: bool, token: str, proxy=None
         await message.answer("验证通过")
 
 
-def reg_new_member_handler(router, test_time: int, bot_name: str, reset_permissions: bool):
+def reg_new_member_handler(router: Router, test_time: int, bot_name: str, reset_permissions: bool):
     @router.chat_member(ChatMemberUpdatedFilter(JOIN_TRANSITION))
     async def handler(event: ChatMemberUpdated):
-        print('join')
         keyboard = [[InlineKeyboardButton(text="点击验证", url=f"https://t.me/{bot_name}?start=verify")]]
         markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+
         msg = await event.answer(
             text=f"{hbold(event.new_chat_member.user.full_name)} 加入了, 请在 {test_time} 秒内私聊通过验证 !",
             reply_markup=markup
         )
 
-        await deferred_verification(msg.chat.id, msg.message_id, event.new_chat_member.user.id, event.bot,
-                                    shutup_before_verification=reset_permissions, test_time=test_time)
+        await deferred_verification(
+            chat_id=msg.chat.id,
+            message_id=msg.message_id,
+            user_id=event.new_chat_member.user.id,
+            bot=event.bot,
+            shutup_before_verification=reset_permissions,
+            test_time=test_time
+        )
 
 
 def get_handlers_router(bot_name: str,

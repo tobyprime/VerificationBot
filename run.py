@@ -20,6 +20,16 @@ def run(
         proxy: str | None = None,
         shutup: bool = True
 ):
+    """
+    启动 bot
+    :param telegram_token: Telegram Bot Token
+    :param recaptcha_token: Google reCAPTCHA 服务端 Token
+    :param webapp_url: reCAPTCHA 的 webapp URL
+    :param test_time: 验证的最大时间限制
+    :param proxy: 代理服务器
+    :param shutup: 是否在通过验证之前禁言用户，如果开启，由于需要重新设置权限，会导致被管理员手动禁言的用户退出重进后也恢复群组的默认权限
+    :return:
+    """
     dp = Dispatcher()
 
     bot = Bot(
