@@ -7,6 +7,7 @@ from aiogram import Dispatcher, Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 
+from filters import IsNewMember, IsAdmin
 from handlers import get_handlers_router
 
 

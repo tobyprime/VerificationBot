@@ -6,7 +6,7 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppIn
     InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.markdown import hbold
 
-from filters import IsAdmin, IsWebAppData
+from filters import IsAdmin, IsWebAppData, IsNewMember
 from recaptcha import verify_recaptcha, verification, users_state, STATE_PASS
 
 
@@ -87,6 +87,15 @@ def reg_new_member_handler(router: Router, test_time: int, bot_name: str, reset_
         )
 
 
+def reg_new_member_tip_handler(router):
+    """
+    删除入群消息
+    """
+    @router.message(IsNewMember(), IsAdmin())
+    async def handler(message: Message):
+        await message.delete()
+
+
 def get_handlers_router(bot_name: str,
                         webapp_url: str,
                         recaptcha_token: str,
@@ -97,4 +106,5 @@ def get_handlers_router(bot_name: str,
     reg_command_start_handler(router, webapp_url)
     reg_callback_handler(router, reset_permissions, recaptcha_token, proxy)
     reg_new_member_handler(router, test_time, bot_name, reset_permissions)
+    reg_new_member_tip_handler(router)
     return router
