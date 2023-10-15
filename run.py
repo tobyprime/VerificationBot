@@ -1,4 +1,4 @@
-# user state code
+import argparse
 import asyncio
 import logging
 import sys
@@ -8,8 +8,6 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 
 from handlers import get_handlers_router
-
-import argparse
 
 
 def run(

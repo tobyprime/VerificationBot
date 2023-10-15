@@ -1,9 +1,12 @@
+from asyncio import sleep
+
 from aiogram import Router
 from aiogram.filters import CommandStart, CommandObject, ChatMemberUpdatedFilter, JOIN_TRANSITION
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, ChatMemberUpdated, \
     InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.markdown import hbold
 
+from filters import IsAdmin, IsWebAppData
 from recaptcha import verify_recaptcha, deferred_verification, users_state, STATE_PASS
 
 
@@ -11,7 +14,7 @@ def reg_command_start_handler(router: Router, webapp_url: str):
     @router.message(CommandStart())
     async def handler(message: Message, command: CommandObject):
         """
-        处理用户与 Bot 开始对话
+        处理用户与 Bot 开始对话命令事件
         """
         if command.args is None or command.args != 'verify':
             return
@@ -28,13 +31,11 @@ def reg_command_start_handler(router: Router, webapp_url: str):
 
 
 def reg_callback_handler(router: Router, reset_permissions: bool, token: str, proxy=None):
-    @router.message()
+    @router.message(IsWebAppData())
     async def handler(message: Message):
         """
-           处理用户在 WebApp 完成验证后的 reCaptcha Response
+           处理用户在 WebApp 完成验证得到 reCaptcha Response 事件
            """
-        if not message.web_app_data:
-            return
         user_id = message.from_user.id
         if user_id not in users_state:
             return
@@ -44,16 +45,28 @@ def reg_callback_handler(router: Router, reset_permissions: bool, token: str, pr
 
         chat_id = users_state[user_id][0]
         users_state[user_id][1] = STATE_PASS
-
+        message_id = users_state[user_id][2]
         if reset_permissions:
             chat = await message.bot.get_chat(chat_id)
             await message.bot.restrict_chat_member(chat_id, user_id, chat.permissions)
-
         await message.answer("验证通过")
+        msg = await message.bot.send_message(chat_id, f"{hbold(message.from_user.full_name)}验证通过")
+        await sleep(5)
+        await message.bot.delete_message(chat_id, message_id)
+        await message.bot.delete_message(chat_id, msg.message_id)
 
 
 def reg_new_member_handler(router: Router, test_time: int, bot_name: str, reset_permissions: bool):
-    @router.chat_member(ChatMemberUpdatedFilter(JOIN_TRANSITION))
+    """
+    处理新用户入群事件
+    :param router:
+    :param test_time:
+    :param bot_name:
+    :param reset_permissions:
+    :return:
+    """
+
+    @router.chat_member(ChatMemberUpdatedFilter(JOIN_TRANSITION), IsAdmin())
     async def handler(event: ChatMemberUpdated):
         keyboard = [[InlineKeyboardButton(text="点击验证", url=f"https://t.me/{bot_name}?start=verify")]]
         markup = InlineKeyboardMarkup(inline_keyboard=keyboard)

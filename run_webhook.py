@@ -1,4 +1,4 @@
-# user state code
+import argparse
 import asyncio
 import logging
 import sys
@@ -10,8 +10,6 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 
 from handlers import get_handlers_router
-
-import argparse
 
 # Webserver settings
 # bind localhost only to prevent any external access

@@ -27,7 +27,7 @@ async def deferred_verification(chat_id: int | str,
      :param test_time: 超过这个时间将被封禁
      :return:
      """
-    users_state[user_id] = [chat_id, STATE_NOT_PERFORMED]  # 缓存正在用户的信息
+    users_state[user_id] = [chat_id, STATE_NOT_PERFORMED, message_id]  # 缓存正在用户的信息
 
     if shutup_before_verification:
         await bot.restrict_chat_member(
@@ -40,8 +40,8 @@ async def deferred_verification(chat_id: int | str,
 
     if users_state[user_id][1] != STATE_PASS:
         await bot.ban_chat_member(chat_id, user_id)
+        await bot.delete_message(chat_id, message_id)
     users_state.pop(user_id)
-    await bot.delete_message(chat_id, message_id)
 
 
 # 验证客户端传回来的 recaptcha response
