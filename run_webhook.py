@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import logging
 import sys
+import urllib.parse
 
 from aiogram import Dispatcher, Bot
 from aiogram.client.session.aiohttp import AiohttpSession
@@ -11,28 +12,20 @@ from aiohttp import web
 
 from handlers import get_handlers_router
 
-# Webserver settings
-# bind localhost only to prevent any external access
-WEB_SERVER_HOST = "127.0.0.1"
-# Port for incoming request from reverse proxy. Should be any available port
-WEB_SERVER_PORT = 8080
-
-# Path to webhook route, on which Telegram will send requests
-WEBHOOK_PATH = "/webhook"
-# Secret key to validate requests from Telegram (optional)
-# WEBHOOK_SECRET = "my-secret"
-# Base URL for webhook will be used to generate webhook URL for Telegram,
-# in this example it is used public DNS with HTTPS support
-BASE_WEBHOOK_URL = "https://TobyLinas.pythonanywhere.com/"
-
 
 def run(
         telegram_token: str,
-        recaptcha_token: str,
-        webapp_url: str,
+        server_url: str,
+        server_host: str,
+        server_port: int,
+        webapp_path: str,
+        webhook_path: str,
+        recaptcha_token: str | None = None,
+        turnstile_token: str | None = None,
         test_time: int = 60,
         proxy: str | None = None,
-        shutup_before_verification: bool = True
+        shutup: bool = True,
+        groups: list[str] | str | None = None
 ):
     dp = Dispatcher()
 
@@ -44,11 +37,13 @@ def run(
 
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     router = get_handlers_router(asyncio.run(bot.get_me()).username,
-                                 webapp_url,
+                                 urllib.parse.urljoin(server_url, webapp_path),
                                  recaptcha_token,
-                                 shutup_before_verification,
+                                 turnstile_token,
+                                 shutup,
                                  test_time,
-                                 proxy)
+                                 proxy,
+                                 groups)
     dp.include_router(router)
     app = web.Application()
 
@@ -61,30 +56,42 @@ def run(
         # secret_token=WEBHOOK_SECRET,
     )
     # Register webhook handler on application
-    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+    webhook_requests_handler.register(app, path=webhook_path)
 
     # Mount dispatcher startup and shutdown hooks to aiohttp application
     setup_application(app, dp, bot=bot)
 
     # And finally start webserver
-    web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
+    web.run_app(app, host=server_host, port=server_port)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Telegram Verification Bot with reCaptcha')
     parser.add_argument('--telegram-token', type=str, help='Telegram Bot Token', required=True)
-    parser.add_argument('--recaptcha-token', type=str, help='reCaptcha Bot Token', required=True)
-    parser.add_argument('--webapp-url', type=str, help='reCaptcha Web App URL', required=True)
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--recaptcha-token', type=str, help='google reCaptcha token')
+    group.add_argument('--turnstile-token', type=str, help='cloudflare turnstile token')
+    parser.add_argument('--server-url',
+                        type=str,
+                        help='base URL for webhook will be used to generate webhook URL for Telegram',
+                        required=True)
+    parser.add_argument('--server-host',
+                        type=str,
+                        help='bind localhost only to prevent any external access',
+                        default="127.0.0.1")
+    parser.add_argument('--server-port',
+                        type=int,
+                        help='Port for incoming request from reverse proxy. Should be any available port',
+                        default=8080)
+    parser.add_argument('--webhook-path', type=str, help='path to webhook route, on which Telegram will send requests',
+                        default='/webhook')
+    parser.add_argument('--webapp-path', type=str, help='path to web app page', required=True)
+
     parser.add_argument('--shutup', type=bool, help='disable speech until the user is authenticated', default=False)
     parser.add_argument('--test-time', type=bool, help='validation time limit', default=False)
     parser.add_argument('--proxy', type=str, help='proxy server', default=None)
+    parser.add_argument('--groups', type=str, nargs='+', help='enable bot group list', default=None)
+
     args = parser.parse_args()
 
-    run(
-        telegram_token=args.telegram_token,
-        recaptcha_token=args.recaptcha_token,
-        webapp_url=args.webapp_url,
-        test_time=args.test_time,
-        proxy=args.proxy,
-        shutup_before_verification=args.shutup
-    )
+    run(**vars(args))

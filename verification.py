@@ -2,7 +2,7 @@ from asyncio import sleep
 
 import requests
 from aiogram import Bot
-from aiogram.types import ChatPermissions, Chat, User, ChatMember
+from aiogram.types import ChatPermissions, Chat, User
 
 STATE_PASS = 'pass'
 STATE_NOT_PERFORMED = 'not performed'
@@ -58,5 +58,22 @@ def verify_recaptcha(user_data: str, token: str, proxy: str = None):
         data=data,
         proxies={"https": proxy} if proxy else None
     ).json()
+    if "score" in result:  # for v3
+        return result['success'] and result['score'] > 0.5
+    return result['success']  # for v2
 
+
+def verify_turnstile(user_data: str, token: str, proxy: str = None):
+
+    data = {
+        "secret": token,
+        "response": user_data
+    }
+    result = requests.post(
+        url="https://challenges.cloudflare.com/turnstile/v0/siteverify",
+        data=data,
+        proxies={"https": proxy} if proxy else None
+    ).json()
     return result['success']
+
+
