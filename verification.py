@@ -8,7 +8,16 @@ STATE_PASS = 'pass'
 STATE_NOT_PERFORMED = 'not performed'
 STATE_FAIL = 'fail'
 
-users_state: dict[int, list] = {}  # [user_id, [group_id, state]]
+
+class UserState:
+    def __init__(self, chat_id: int, group_tip_id: int, state='not performed', private_tip_msg=None):
+        self.chat_id = chat_id
+        self.group_tip_id = group_tip_id
+        self.private_tip_msg = private_tip_msg
+        self.state = state
+
+
+user_states: dict[int, UserState] = {}
 
 
 async def verification(chat: Chat,
@@ -27,7 +36,7 @@ async def verification(chat: Chat,
      :param test_time: 超过这个时间将被封禁
      :return:
      """
-    users_state[user.id] = [chat.id, STATE_NOT_PERFORMED, message_id]  # 缓存正在用户的信息
+    user_states[user.id] = UserState(chat.id, message_id)  # 缓存正在用户的信息
 
     if shutup_before_verification:
         await bot.restrict_chat_member(
@@ -38,13 +47,13 @@ async def verification(chat: Chat,
 
     await sleep(test_time)
 
-    if users_state[user.id][1] != STATE_PASS:
+    if user_states[user.id].state != STATE_PASS:
         await bot.ban_chat_member(chat.id, user.id)
         await bot.delete_message(chat.id, message_id)
-        msg = await bot.send_message(chat.id, f"{user.full_name} 验证超时，已被踢出")
+        msg = await bot.send_message(chat.id, f"{user.username[0] + '███' + user.username[-1]} 验证超时，已被踢出")
         await sleep(10)
         await bot.delete_message(chat.id, msg.message_id)
-    users_state.pop(user.id)
+    user_states.pop(user.id)
 
 
 # 验证客户端传回来的 recaptcha response
@@ -64,7 +73,6 @@ def verify_recaptcha(user_data: str, token: str, proxy: str = None):
 
 
 def verify_turnstile(user_data: str, token: str, proxy: str = None):
-
     data = {
         "secret": token,
         "response": user_data
@@ -75,5 +83,3 @@ def verify_turnstile(user_data: str, token: str, proxy: str = None):
         proxies={"https": proxy} if proxy else None
     ).json()
     return result['success']
-
-

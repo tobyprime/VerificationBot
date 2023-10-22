@@ -4,11 +4,11 @@ from functools import partial
 from aiogram import Router
 from aiogram.filters import CommandStart, CommandObject, ChatMemberUpdatedFilter, JOIN_TRANSITION
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, ChatMemberUpdated, \
-    InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.utils.markdown import hbold
+    InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
+from aiogram.utils.markdown import hbold, markdown_decoration,html_decoration
 
 from filters import IsEnableGroup, IsWebAppData, IsNewMember
-from verification import verify_recaptcha, verify_turnstile, verification, users_state, STATE_PASS
+from verification import verify_recaptcha, verify_turnstile, verification, user_states, STATE_PASS
 
 
 async def command_start_handler(message: Message, command: CommandObject, webapp_url: str):
@@ -18,16 +18,17 @@ async def command_start_handler(message: Message, command: CommandObject, webapp
     if command.args is None or command.args != 'verify':
         return
     user_id = message.from_user.id
-    if user_id not in users_state:
-        await message.answer(f"你没有待通过的入群验证")
-        return
+    if user_id not in user_states:
+        return await message.answer(f"你没有待通过的入群验证")
+
     webapp = WebAppInfo(url=webapp_url)
     keyboard = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="点我验证", web_app=webapp)]],
+        keyboard=[[KeyboardButton(text="点击验证", web_app=webapp)]],
         resize_keyboard=True,
         one_time_keyboard=True
     )
-    await message.answer("请点击下方按钮进行验证", reply_markup=keyboard)
+    msg = await message.answer("请点击下方按钮进行验证", reply_markup=keyboard)
+    user_states[user_id].private_tip_msg = msg
 
 
 async def web_callback_handler(message: Message, token: str, reset_permissions: bool, proxy: str | None,
@@ -36,22 +37,24 @@ async def web_callback_handler(message: Message, token: str, reset_permissions: 
        处理用户在 WebApp 完成验证得到 reCaptcha Response 事件
     """
     user_id = message.from_user.id
-    if user_id not in users_state:
-        return
-    if not validator(message.web_app_data.data, token, proxy):
-        await message.answer("验证失败")
+    if user_id not in user_states:
         return
 
-    chat_id = users_state[user_id][0]
-    users_state[user_id][1] = STATE_PASS
-    message_id = users_state[user_id][2]
+    if not validator(message.web_app_data.data, token, proxy):
+        return await message.answer("验证失败")
+
+    chat_id = user_states[user_id].chat_id
+    user_states[user_id].state = STATE_PASS
+    group_tip_id = user_states[user_id].group_tip_id
+
     if reset_permissions:
         chat = await message.bot.get_chat(chat_id)
         await message.bot.restrict_chat_member(chat_id, user_id, chat.permissions)
-    await message.answer("验证通过")
+    await message.answer("验证通过", reply_markup=ReplyKeyboardRemove())
+
     msg = await message.bot.send_message(chat_id, f"{hbold(message.from_user.full_name)} 通过了验证")
     await sleep(5)
-    await message.bot.delete_message(chat_id, message_id)
+    await message.bot.delete_message(chat_id, group_tip_id)
     await message.bot.delete_message(chat_id, msg.message_id)
 
 
@@ -62,9 +65,9 @@ async def new_member_handler(event: ChatMemberUpdated, bot_name: str, test_time:
     print(event.chat.username)
     keyboard = [[InlineKeyboardButton(text="点击验证", url=f"https://t.me/{bot_name}?start=verify")]]
     markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
-
+    user_name = event.from_user.full_name
     msg = await event.answer(
-        text=f"{hbold(event.new_chat_member.user.full_name)} 加入了, 请在 {test_time} 秒内私聊通过验证 !",
+        text=f"{event.from_user.mention_html(name=user_name[0] + '███' + user_name[-1])if len(user_name)>=3 else user_name} 加入了, 请在 {test_time} 秒内私聊通过验证 !",
         reply_markup=markup
     )
 
