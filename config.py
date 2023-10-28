@@ -84,11 +84,10 @@ class Config:
 
         parser.add_argument('--server-host',
                             type=str,
-                            help='bind localhost only to prevent any external access', )
+                            help='bind localhost only to prevent any external access')
         parser.add_argument('--server-port',
                             type=int,
-                            help='port for incoming request from reverse proxy. should be any available port',
-                            default=getenv("PORT"))
+                            help='port for incoming request from reverse proxy. should be any available port')
         parser.add_argument('--webhook-path', type=str,
                             help='path to webhook route, on which Telegram will send requests', default="/webhook")
         return Config(**vars(parser.parse_args()))
