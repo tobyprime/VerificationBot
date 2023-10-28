@@ -1,7 +1,5 @@
-import aiogram
-import functools
 from aiogram.filters import BaseFilter
-from aiogram.types import CallbackQuery, Message, ChatMember, ChatMemberAdministrator
+from aiogram.types import CallbackQuery, Message, ChatMemberAdministrator
 
 
 class IsEnableGroup(BaseFilter):
@@ -26,16 +24,12 @@ class IsEnableGroup(BaseFilter):
 
 
 class IsWebAppData(BaseFilter):
-    def __init__(self) -> None:
-        pass
 
     async def __call__(self, message: Message) -> bool:
         return message.web_app_data is not None and message.chat.type == 'private'
 
 
 class IsNewMember(BaseFilter):
-    def __init__(self) -> None:
-        pass
 
     async def __call__(self, message: Message) -> bool:
         return message.new_chat_members is not None
