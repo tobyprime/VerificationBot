@@ -22,7 +22,7 @@ python ./run.py --telegram-token 100000000:XXXXX-1234567890 \
 - --webapp-url：用于客户端进行验证的网页地址（必须 https 协议通信），完成前端验证时将 response 通过 tg 的 url 返回给客户端，见 https://core.telegram.org/bots/webapps#initializing-mini-apps
 - --proxy: 连接 tg 服务器与 response 验证服务器使用的代理
 更多参数细节见 `python ./run.py --help` 或 config.py 内注释
-- ## 以 webhook 方式运行
+## 以 webhook 方式运行
 ```bash
 python ./run.py --telegram-token 100000000:XXXXX-1234567890 \
                 --turnstile-token 0xAAAAAAA-ABVDEFG \
