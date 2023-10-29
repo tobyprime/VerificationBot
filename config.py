@@ -1,6 +1,5 @@
 import argparse
 import logging
-from os import getenv
 from typing import Optional
 
 
@@ -71,7 +70,7 @@ class Config:
         group.add_argument('--recaptcha-token', type=str, help='google reCaptcha token')
         group.add_argument('--turnstile-token', type=str, help='cloudflare turnstile token')
 
-        parser.add_argument('--ban', type=bool, default=False, help='验证超时后屏蔽')
+        parser.add_argument('--ban', type=bool, action=argparse.BooleanOptionalAction,default=False, help='验证超时后屏蔽')
         parser.add_argument('--ban-time', type=int, help='验证超时后屏蔽的时间')
 
         parser.add_argument('--webapp-url', type=str, help='path to web app page', required=True)
